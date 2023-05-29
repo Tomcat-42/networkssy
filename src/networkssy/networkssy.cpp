@@ -36,6 +36,10 @@ auto socket::close() const -> void {
   ::close(socket_fd);
 }
 
+auto socket::get_socketfd() const -> int {
+  return socket_fd;
+}
+
 tcp_socket::tcp_socket() : socket(AF_INET, SOCK_STREAM, 0) {}
 
 tcp_socket::~tcp_socket() {
@@ -79,6 +83,62 @@ auto udp_socket::set_destination(const std::string& host, uint16_t port)
   if (::connect(socket_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
     throw std::runtime_error("Could not connect socket");
   }
+}
+
+tcp_connection::tcp_connection() = default;
+
+auto tcp_connection::connect(const std::string& host, uint16_t port) -> void {
+  socket.connect(host, port);
+}
+
+auto tcp_connection::disconnect() -> void {
+  socket.close();
+}
+
+auto tcp_connection::send(const std::vector<uint8_t>& data) -> void {
+  if (::send(socket.get_socketfd(), data.data(), data.size(), 0) < 0) {
+    throw std::runtime_error("Could not send data");
+  }
+}
+
+auto tcp_connection::receive(size_t size) -> std::vector<uint8_t> {
+  std::vector<uint8_t> buffer(size);
+  ssize_t received_bytes;
+
+  if ((received_bytes = ::recv(socket.get_socketfd(), buffer.data(), size, 0)) <
+      0) {
+    throw std::runtime_error("Could not receive data");
+  }
+  buffer.resize(received_bytes);
+  return buffer;
+}
+
+udp_connection::udp_connection() = default;
+
+auto udp_connection::connect(const std::string& host, uint16_t port) -> void {
+  socket.set_destination(host, port);
+}
+
+auto udp_connection::disconnect() -> void {
+  socket.close();
+}
+
+auto udp_connection::send(const std::vector<uint8_t>& data) -> void {
+  if (::send(socket.get_socketfd(), data.data(), data.size(), 0) < 0) {
+    throw std::runtime_error("Could not send data");
+  }
+}
+
+auto udp_connection::receive(size_t size) -> std::vector<uint8_t> {
+  std::vector<uint8_t> buffer(size);
+  ssize_t received_bytes;
+
+  if ((received_bytes = ::recv(socket.get_socketfd(), buffer.data(), size, 0)) <
+      0) {
+    throw std::runtime_error("Could not receive data");
+  }
+  buffer.resize(received_bytes);
+  return buffer;
 }
 
 auto fn() -> std::string {

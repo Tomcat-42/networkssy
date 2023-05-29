@@ -21,6 +21,7 @@ public:
 
   auto bind(const std::string& host, uint16_t port) const -> void;
   auto close() const -> void;
+  [[nodiscard]] auto get_socketfd() const -> int;
 
 protected:
   int socket_fd; // NOLINT
@@ -42,6 +43,32 @@ public:
   ~udp_socket();
 
   auto set_destination(const std::string& host, uint16_t port) -> void;
+};
+
+class tcp_connection : public connection {
+public:
+  tcp_connection();
+
+  auto connect(const std::string& host, uint16_t port) -> void override;
+  auto disconnect() -> void override;
+  auto send(const std::vector<uint8_t>& data) -> void override;
+  auto receive(size_t size) -> std::vector<uint8_t> override;
+
+private:
+  tcp_socket socket;
+};
+
+class udp_connection : public connection {
+public:
+  udp_connection();
+
+  auto connect(const std::string& host, uint16_t port) -> void override;
+  auto disconnect() -> void override;
+  auto send(const std::vector<uint8_t>& data) -> void override;
+  auto receive(size_t size) -> std::vector<uint8_t> override;
+
+private:
+  udp_socket socket;
 };
 
 } // namespace networkssy

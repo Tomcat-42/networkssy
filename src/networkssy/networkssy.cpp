@@ -1,8 +1,10 @@
 #include <networkssy/networkssy.hpp>
 
 #include <arpa/inet.h>
+#include <cmath>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <sys/socket.h>
@@ -11,9 +13,6 @@
 
 namespace networkssy {
 
-// ack magic number
-constexpr uint8_t ACK = 0x06;
-constexpr uint8_t ACK_TRIES = 3;
 
 socket::socket(int domain, int type, int protocol) {
   if ((socket_fd = ::socket(domain, type, protocol)) < 0) {
@@ -147,7 +146,7 @@ auto udp_connection::receive(size_t size) -> std::vector<uint8_t> {
 
 auto udp_connection::send_with_ack(const std::vector<uint8_t>& data) -> void {
   // send data and wait for ack
-  for (uint8_t i = 0; i < ACK_TRIES; i++) {
+  for (uint8_t i = 0; i < ACK_TIMEOUT; i++) {
     send(data);
     std::vector<uint8_t> ack = receive(1);
     if (ack[0] == ACK) {
@@ -162,6 +161,31 @@ auto udp_connection::receive_with_ack(size_t size) -> std::vector<uint8_t> {
   std::vector<uint8_t> ack = {ACK};
   send(ack);
   return data;
+}
+
+statistics::statistics() = default;
+
+auto statistics::record(double value) -> void {
+  values.push_back(value);
+}
+
+auto statistics::mean() const -> double {
+  return std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+}
+
+auto statistics::stddev() const -> double {
+  double mean = this->mean();
+  double sq_sum =
+    std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
+  return std::sqrt(sq_sum / values.size() - mean * mean);
+}
+
+auto statistics::confidence_interval_95() const -> std::pair<double, double> {
+  double mean = this->mean();
+  double stddev = this->stddev();
+  double error = CONFIDENCE_LEVEL * stddev / std::sqrt(values.size());
+
+  return std::make_pair(mean - error, mean + error);
 }
 
 auto fn() -> std::string {

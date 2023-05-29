@@ -76,4 +76,18 @@ private:
   static constexpr uint8_t ACK_TIMEOUT = 3;
 };
 
+class statistics {
+public:
+  statistics();
+  auto record(double value) -> void;
+  [[nodiscard]] auto mean() const -> double;
+  [[nodiscard]] auto stddev() const -> double;
+  [[nodiscard]] auto confidence_interval_95() const
+    -> std::pair<double, double>;
+
+private:
+  std::vector<double> values;
+  static constexpr double CONFIDENCE_LEVEL = 1.96;
+};
+
 } // namespace networkssy

@@ -66,9 +66,14 @@ public:
   auto disconnect() -> void override;
   auto send(const std::vector<uint8_t>& data) -> void override;
   auto receive(size_t size) -> std::vector<uint8_t> override;
+  auto send_with_ack(const std::vector<uint8_t>& data) -> void;
+  auto receive_with_ack(size_t size) -> std::vector<uint8_t>;
 
 private:
   udp_socket socket;
+  static constexpr uint8_t ACK = 0x01;
+  static constexpr size_t ACK_SIZE = 1;
+  static constexpr uint8_t ACK_TIMEOUT = 3;
 };
 
 } // namespace networkssy

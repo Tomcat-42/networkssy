@@ -11,6 +11,10 @@
 
 namespace networkssy {
 
+// ack magic number
+constexpr uint8_t ACK = 0x06;
+constexpr uint8_t ACK_TRIES = 3;
+
 socket::socket(int domain, int type, int protocol) {
   if ((socket_fd = ::socket(domain, type, protocol)) < 0) {
     throw std::runtime_error("Could not create socket");
@@ -139,6 +143,25 @@ auto udp_connection::receive(size_t size) -> std::vector<uint8_t> {
   }
   buffer.resize(received_bytes);
   return buffer;
+}
+
+auto udp_connection::send_with_ack(const std::vector<uint8_t>& data) -> void {
+  // send data and wait for ack
+  for (uint8_t i = 0; i < ACK_TRIES; i++) {
+    send(data);
+    std::vector<uint8_t> ack = receive(1);
+    if (ack[0] == ACK) {
+      return;
+    }
+  }
+}
+
+auto udp_connection::receive_with_ack(size_t size) -> std::vector<uint8_t> {
+  // receive data and send ack
+  std::vector<uint8_t> data = receive(size);
+  std::vector<uint8_t> ack = {ACK};
+  send(ack);
+  return data;
 }
 
 auto fn() -> std::string {

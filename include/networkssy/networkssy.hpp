@@ -36,4 +36,12 @@ public:
   auto accept() -> int;
 };
 
+class udp_socket : public socket {
+public:
+  udp_socket();
+  ~udp_socket();
+
+  auto set_destination(const std::string& host, uint16_t port) -> void;
+};
+
 } // namespace networkssy

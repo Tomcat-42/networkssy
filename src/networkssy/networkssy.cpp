@@ -67,6 +67,20 @@ auto tcp_socket::accept() -> int {
   return new_socket_fd;
 }
 
+udp_socket::udp_socket() : socket(AF_INET, SOCK_DGRAM, 0) {}
+
+auto udp_socket::set_destination(const std::string& host, uint16_t port)
+  -> void {
+  struct sockaddr_in address;
+  address.sin_family = AF_INET;
+  address.sin_port = htons(port);
+  inet_pton(AF_INET, host.c_str(), &address.sin_addr);
+
+  if (::connect(socket_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+    throw std::runtime_error("Could not connect socket");
+  }
+}
+
 auto fn() -> std::string {
   return "fn";
 }

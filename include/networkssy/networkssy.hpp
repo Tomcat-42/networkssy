@@ -51,4 +51,16 @@ public:
    */
   virtual auto receive(size_t size) -> std::vector<uint8_t> = 0;
 };
+
+class socket {
+public:
+  socket(int domain, int type, int protocol);
+  ~socket();
+
+  auto bind(const std::string& host, uint16_t port) const -> void;
+  auto close() const -> void;
+
+private:
+  int socket_fd;
+};
 } // namespace networkssy

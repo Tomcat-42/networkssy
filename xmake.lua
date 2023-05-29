@@ -56,7 +56,6 @@ target("networkssy", function()
 	add_files("src/networkssy/*.cpp")
 	add_packages(table.unpack(networkssy_deps))
 	set_installdir("/usr/local")
-	set_targetdir("./networkssy")
 end)
 
 -- client target

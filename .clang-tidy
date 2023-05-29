@@ -1,34 +1,8 @@
 ---
-Checks: >
-  *,
-  -modernize-use-trailing-return-type,
-  -modernize-use-nodiscard,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -google-readability-braces-around-statements,
-  -google-readability-function-size,
-  -google-runtime-references,
-  -google-build-using-namespace,
-  -hicpp-exception-baseclass,
-  -hicpp-avoid-goto,
-  -hicpp-no-array-decay,
-  -llvm-include-order,
-  -llvm-namespace-comment,
-  -misc-misplaced-widening-cast,
-  -misc-new-delete-overloads,
-  -misc-non-private-member-variables-in-classes,
-  -misc-no-recursion,
-  -misc-string-compare,
-  -misc-throw-by-value-catch-by-reference,
-  -misc-unused-parameters,
-  -readability-braces-around-statements,
-  -readability-function-size,
-  -readability-named-parameter,
-  -readability-else-after-return,
-  -readability-inconsistent-declaration-parameter-name
+Checks: '-*,modernize-*,readability-*,misc-*'
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*'
-FormatStyle: file
+FormatStyle: Chromium
 User: tomcat0x42
 CheckOptions:
   - key: readability-identifier-naming.NamespaceCase
@@ -53,4 +27,3 @@ CheckOptions:
     value: snake_case
   - key: readability-identifier-naming.ConstantCase
     value: snake_case
-...

@@ -1,3 +1,4 @@
+#include <iostream>
 #include <networkssy/networkssy.hpp>
 
 #include <arpa/inet.h>
@@ -5,10 +6,12 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <numeric>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <thread>
 #include <unistd.h>
 
 namespace networkssy {
@@ -49,6 +52,10 @@ auto socket::get_socketfd() const -> int {
   return *socket_fd;
 }
 
+auto socket::set_socketfd(int new_socketfd) -> void {
+  socket_fd.reset(new int(new_socketfd));
+}
+
 tcp_socket::tcp_socket() : socket(AF_INET, SOCK_STREAM, 0) {}
 
 tcp_socket::~tcp_socket() {
@@ -82,6 +89,8 @@ auto tcp_socket::accept() -> int {
 
 udp_socket::udp_socket() : socket(AF_INET, SOCK_DGRAM, 0) {}
 
+udp_socket::~udp_socket() = default;
+
 auto udp_socket::set_destination(const std::string& host, uint16_t port)
   -> void {
   struct sockaddr_in address;
@@ -94,11 +103,43 @@ auto udp_socket::set_destination(const std::string& host, uint16_t port)
   }
 }
 
+auto udp_socket::receive_from(size_t size)
+  -> std::pair<std::vector<uint8_t>, std::pair<std::string, uint16_t>> {
+  std::vector<uint8_t> buffer(size);
+  struct sockaddr_in sender_addr;
+  socklen_t addr_size = sizeof(sender_addr);
+
+  ssize_t received_bytes = recvfrom(get_socketfd(), buffer.data(), size, 0,
+                                    (struct sockaddr*)&sender_addr, &addr_size);
+  if (received_bytes == -1) {
+    // Handle error
+  }
+
+  std::string sender_ip(inet_ntoa(sender_addr.sin_addr));
+  uint16_t sender_port = ntohs(sender_addr.sin_port);
+
+  return {buffer, {sender_ip, sender_port}};
+}
+
+auto udp_socket::send_to(const std::vector<uint8_t>& data,
+                         const std::string& host, uint16_t port) -> void {
+  struct sockaddr_in recipient_addr;
+  recipient_addr.sin_family = AF_INET;
+  recipient_addr.sin_port = htons(port);
+  inet_pton(AF_INET, host.c_str(), &recipient_addr.sin_addr);
+
+  if (sendto(get_socketfd(), data.data(), data.size(), 0,
+             (struct sockaddr*)&recipient_addr, sizeof(recipient_addr)) < 0) {
+    throw std::runtime_error("Could not send data");
+  }
+}
+
 tcp_connection::tcp_connection() = default;
 
-auto tcp_connection::connect(const std::string& host, uint16_t port) -> void {
-  socket.connect(host, port);
-}
+// auto tcp_connection::connect(const std::string& host, uint16_t port) -> void
+// {
+//   socket.connect(host, port);
+// }
 
 auto tcp_connection::disconnect() -> void {
   socket.close();
@@ -122,11 +163,27 @@ auto tcp_connection::receive(size_t size) -> std::vector<uint8_t> {
   return buffer;
 }
 
+auto tcp_connection::connect_to_server(const std::string& host, uint16_t port)
+  -> void {
+  socket.connect(host, port);
+}
+
+auto tcp_connection::start_server(uint16_t port) -> void {
+  socket.bind("0.0.0.0", port); // bind to all interfaces
+  socket.listen(10);            // listen with a backlog of 10
+}
+
+auto tcp_connection::accept_client() -> void {
+  socket.set_socketfd(socket.accept());
+  std::cout << "Client connected" << std::endl;
+}
+
 udp_connection::udp_connection() = default;
 
-auto udp_connection::connect(const std::string& host, uint16_t port) -> void {
-  socket.set_destination(host, port);
-}
+// auto udp_connection::connect(const std::string& host, uint16_t port) -> void
+// {
+//   socket.set_destination(host, port);
+// }
 
 auto udp_connection::disconnect() -> void {
   socket.close();
@@ -150,48 +207,57 @@ auto udp_connection::receive(size_t size) -> std::vector<uint8_t> {
   return buffer;
 }
 
-auto udp_connection::send_with_ack(const std::vector<uint8_t>& data) -> void {
-  // send data and wait for ack
+auto udp_connection::connect_to_server(const std::string& host, uint16_t port)
+  -> void {
+  socket.set_destination(host, port);
+}
+
+auto udp_connection::start_server(uint16_t port) -> void {
+  socket.bind("0.0.0.0", port); // bind to all interfaces
+                                // no listen call for UDP
+}
+
+auto udp_connection::accept_client() -> void {}
+
+auto udp_connection::send_to(const std::vector<uint8_t>& data,
+                             const std::string& host, uint16_t port) -> void {
+  socket.send_to(data, host, port);
+}
+
+auto udp_connection::receive_from(size_t size)
+  -> std::pair<std::vector<uint8_t>, std::pair<std::string, uint16_t>> {
+  return socket.receive_from(size);
+}
+
+auto udp_connection::send_with_ack(const std::vector<uint8_t>& data,
+                                   const std::string& host, uint16_t port)
+  -> void {
   for (uint8_t i = 0; i < ACK_TIMEOUT; i++) {
-    send(data);
-    std::vector<uint8_t> ack = receive(1);
-    if (ack[0] == ACK) {
+    send_to(data, host, port);
+    std::cout << "Sent data, waiting for ack" << std::endl;
+
+    auto received = receive_from(1);
+    std::cout << "Received " << received.first.size() << " bytes" << std::endl;
+
+    if (!received.first.empty() && received.first[0] == ACK) {
       return;
     }
+
+    // If no ACK received, wait before next attempt
+    std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_DELAY_MS));
   }
+  throw std::runtime_error("Failed to receive ACK after multiple attempts.");
 }
 
-auto udp_connection::receive_with_ack(size_t size) -> std::vector<uint8_t> {
-  // receive data and send ack
-  std::vector<uint8_t> data = receive(size);
-  std::vector<uint8_t> ack = {ACK};
-  send(ack);
-  return data;
-}
-
-statistics::statistics() = default;
-
-auto statistics::record(double value) -> void {
-  values.push_back(value);
-}
-
-auto statistics::mean() const -> double {
-  return std::accumulate(values.begin(), values.end(), 0.0) / values.size();
-}
-
-auto statistics::stddev() const -> double {
-  double mean = this->mean();
-  double sq_sum =
-    std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
-  return std::sqrt(sq_sum / values.size() - mean * mean);
-}
-
-auto statistics::confidence_interval_95() const -> std::pair<double, double> {
-  double mean = this->mean();
-  double stddev = this->stddev();
-  double error = CONFIDENCE_LEVEL * stddev / std::sqrt(values.size());
-
-  return std::make_pair(mean - error, mean + error);
+auto udp_connection::receive_with_ack(size_t size)
+  -> std::pair<std::vector<uint8_t>, std::pair<std::string, uint16_t>> {
+  auto received = receive_from(size);
+  if (!received.first.empty()) {
+    std::cout << "Received " << received.first.size() << " bytes" << std::endl;
+    std::vector<uint8_t> ack = {ACK};
+    send_to(ack, received.second.first, received.second.second);
+  }
+  return received;
 }
 
 auto fn() -> std::string {

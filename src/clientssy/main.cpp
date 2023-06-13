@@ -1,6 +1,9 @@
 #include <cxxopts.hpp>
 #include <iostream>
-#include <networkssy/networkssy.hpp>
+
+#include <networkssy/connection.hpp>
+#include <networkssy/connection/tcp.hpp>
+#include <networkssy/connection/udp.hpp>
 
 auto main(int argc, char* argv[]) -> int {
   cxxopts::Options options(

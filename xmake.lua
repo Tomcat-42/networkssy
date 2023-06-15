@@ -9,7 +9,7 @@ set_license("MIT")
 set_xmakever("2.7.9")
 
 -- settings
-add_rules("mode.debug", "mode.release")
+add_rules("mode.debug", "mode.release", "mode.releasedbg", "plugin.compile_commands.autoupdate")
 set_warnings("all", "error")
 set_optimize("fastest")
 add_includedirs("include", "/usr/local/include", "/usr/include")
@@ -80,7 +80,7 @@ end)
 
 -- test suites for all targets
 target("test", function()
-	set_default(false)
+	set_default(true)
 	set_kind("binary")
 	add_files("test/**/*.cpp", "test/main.cpp")
 	add_packages(table.unpack(test_deps))
@@ -90,7 +90,7 @@ end)
 
 -- benchmarks for all targets
 target("bench", function()
-	set_default(false)
+	set_default(true)
 	set_kind("binary")
 	add_files("bench/**/*.cpp", "bench/main.cpp")
 	add_packages(table.unpack(bench_deps))

@@ -51,9 +51,9 @@ add_requires(table.unpack(bench_deps))
 
 -- the main library target
 target("networkssy", function()
-	-- set_default(true)
+	set_default(true)
 	set_kind("shared")
-	add_files("src/networkssy/*.cpp")
+	add_files("src/networkssy/*.cpp", "src/networkssy/**/*.cpp")
 	add_packages(table.unpack(networkssy_deps))
 	set_installdir("/usr/local")
 end)

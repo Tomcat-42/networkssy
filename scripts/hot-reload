@@ -2,22 +2,22 @@
 
 # print the usage message
 usage() {
-    echo -e "Usage: $0 [target]" 1>&2
-    exit 1
+	echo -e "Usage: $0 [target]" 1>&2
+	exit 1
 }
+
 command_exists() {
-    if ! command -v """$1" >/dev/null 2>&1; then
-        echo "I require the command ""$1 but it's not installed. Abort."
-        exit 1
-    fi
+	if ! command -v """$1" >/dev/null 2>&1; then
+		echo "I require the command ""$1 but it's not installed. Abort."
+		exit 1
+	fi
 }
 
 # depts
-for i in "nodemon" "ccache"; do
-    command_exists "$i"
+for i in "xmake"; do
+	command_exists "$i"
 done
 
-# get the argument target or use default(midirc)
-target=${1:-midirc}
-
-nodemon -e cc,h,js,cpp,hpp --exec "xmake build && xmake run -w . -- $target"
+# get the argument target or use default(test)
+target=${1:-test}
+xmake watch -y -- bash -c "xmake b $target && xmake run $target"

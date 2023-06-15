@@ -108,5 +108,5 @@ INSTANTIATE_TEST_SUITE_P(DomainAndProtocolTest, SocketTest, // NOLINT
                                 std::make_tuple(Domain::IPV4, Protocol::UDP),
                                 std::make_tuple(Domain::IPV6, Protocol::TCP),
                                 std::make_tuple(Domain::IPV6, Protocol::UDP),
-                                std::make_tuple(Domain::UNIX, Protocol::TCP),
-                                std::make_tuple(Domain::UNIX, Protocol::UDP)));
+                                std::make_tuple(Domain::LOCAL, Protocol::TCP),
+                                std::make_tuple(Domain::LOCAL, Protocol::UDP)));

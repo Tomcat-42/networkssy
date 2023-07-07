@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <iostream>
 #include <networkssy/networkssy.hpp>
 
@@ -231,7 +232,10 @@ auto udp_connection::receive_from(size_t size)
 
 auto udp_connection::send_with_ack(const std::vector<uint8_t>& data,
                                    const std::string& host, uint16_t port)
-  -> void {
+  -> size_t {
+
+  size_t number_of_retries = 0;
+
   for (uint8_t i = 0; i < ACK_TIMEOUT; i++) {
     send_to(data, host, port);
     std::cout << "Sent data, waiting for ack" << std::endl;
@@ -239,11 +243,13 @@ auto udp_connection::send_with_ack(const std::vector<uint8_t>& data,
     auto received = receive_from(1);
     std::cout << "Received " << received.first.size() << " bytes" << std::endl;
 
+    // data was sent and ACK received
     if (!received.first.empty() && received.first[0] == ACK) {
-      return;
+      return number_of_retries;
     }
 
     // If no ACK received, wait before next attempt
+    number_of_retries++;
     std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_DELAY_MS));
   }
   throw std::runtime_error("Failed to receive ACK after multiple attempts.");

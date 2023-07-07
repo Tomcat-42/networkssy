@@ -55,6 +55,7 @@ auto main(int argc, char* argv[]) -> int {
 
     std::vector<uint8_t> buffer(block_size);
     std::cout << "buffer size: " << block_size << std::endl;
+    size_t number_of_retries = 0;
     while (true) {
       std::cin.read(reinterpret_cast<char*>(buffer.data()), block_size);
       std::streamsize size = std::cin.gcount();
@@ -67,11 +68,16 @@ auto main(int argc, char* argv[]) -> int {
       buffer.resize(size);
 
       if (guarantee && protocol == "udp") {
-        dynamic_cast<networkssy::udp_connection*>(conn.get())
-          ->send_with_ack(buffer, address, port);
+        number_of_retries +=
+          dynamic_cast<networkssy::udp_connection*>(conn.get())
+            ->send_with_ack(buffer, address, port);
       } else {
         conn->send(buffer);
       }
+    }
+
+    if (guarantee && protocol == "udp") {
+      std::cout << "Number of retries: " << number_of_retries << std::endl;
     }
 
     conn->disconnect();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -90,7 +91,7 @@ public:
   auto receive_from(size_t size)
     -> std::pair<std::vector<uint8_t>, std::pair<std::string, uint16_t>>;
   auto send_with_ack(const std::vector<uint8_t>& data, const std::string& host,
-                     uint16_t port) -> void;
+                     uint16_t port) -> size_t;
   auto receive_with_ack(size_t size)
     -> std::pair<std::vector<uint8_t>, std::pair<std::string, uint16_t>>;
   ~udp_connection() override = default;

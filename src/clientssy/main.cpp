@@ -64,7 +64,6 @@ auto main(int argc, char* argv[]) -> int {
         break;
       }
 
-      printf("Read %lu bytes\n", static_cast<size_t>(size));
       buffer.resize(size);
 
       if (guarantee && protocol == "udp") {
